@@ -10,9 +10,10 @@ from keras.layers import LSTM
 from keras.layers import BatchNormalization as BatchNorm
 from keras.layers import Activation
 
+
 def generate():
     """ Generate a piano midi file """
-    #load the notes used to train the model
+    # load the notes used to train the model
     with open('data/notes', 'rb') as filepath:
         notes = pickle.load(filepath)
 
@@ -21,15 +22,19 @@ def generate():
     # Get all pitch names
     n_vocab = len(set(notes))
 
-    network_input, normalized_input = prepare_sequences(notes, pitchnames, n_vocab)
+    network_input, normalized_input = prepare_sequences(
+        notes, pitchnames, n_vocab)
     model = create_network(normalized_input, n_vocab)
-    prediction_output = generate_notes(model, network_input, pitchnames, n_vocab)
+    prediction_output = generate_notes(
+        model, network_input, pitchnames, n_vocab)
     create_midi(prediction_output)
+
 
 def prepare_sequences(notes, pitchnames, n_vocab):
     """ Prepare the sequences used by the Neural Network """
     # map between notes and integers and back
-    note_to_int = dict((note, number) for number, note in enumerate(pitchnames))
+    note_to_int = dict((note, number)
+                       for number, note in enumerate(pitchnames))
 
     sequence_length = 100
     network_input = []
@@ -43,11 +48,13 @@ def prepare_sequences(notes, pitchnames, n_vocab):
     n_patterns = len(network_input)
 
     # reshape the input into a format compatible with LSTM layers
-    normalized_input = numpy.reshape(network_input, (n_patterns, sequence_length, 1))
+    normalized_input = numpy.reshape(
+        network_input, (n_patterns, sequence_length, 1))
     # normalize input
     normalized_input = normalized_input / float(n_vocab)
 
     return (network_input, normalized_input)
+
 
 def create_network(network_input, n_vocab):
     """ create the structure of the neural network """
@@ -71,22 +78,24 @@ def create_network(network_input, n_vocab):
     model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
     # Load the weights to each node
-    model.load_weights('weights.hdf5')
+    model.load_weights('weights-improvement-10-3.1090-bigger.hdf5')
 
     return model
+
 
 def generate_notes(model, network_input, pitchnames, n_vocab):
     """ Generate notes from the neural network based on a sequence of notes """
     # pick a random sequence from the input as a starting point for the prediction
     start = numpy.random.randint(0, len(network_input)-1)
 
-    int_to_note = dict((number, note) for number, note in enumerate(pitchnames))
+    int_to_note = dict((number, note)
+                       for number, note in enumerate(pitchnames))
 
     pattern = network_input[start]
     prediction_output = []
 
     # generate 500 notes
-    for note_index in range(500):
+    for note_index in range(100):
         prediction_input = numpy.reshape(pattern, (1, len(pattern), 1))
         prediction_input = prediction_input / float(n_vocab)
 
@@ -100,6 +109,7 @@ def generate_notes(model, network_input, pitchnames, n_vocab):
         pattern = pattern[1:len(pattern)]
 
     return prediction_output
+
 
 def create_midi(prediction_output):
     """ convert the output from the prediction to notes and create a midi file
@@ -133,6 +143,7 @@ def create_midi(prediction_output):
     midi_stream = stream.Stream(output_notes)
 
     midi_stream.write('midi', fp='test_output.mid')
+
 
 if __name__ == '__main__':
     generate()
